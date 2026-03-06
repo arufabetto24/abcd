@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>迷い込んだ迷路 再構築版</title>
+<style>
+body{margin:0;overflow:hidden;background:black;font-family:sans-serif;}
+#ui{position:absolute;top:10px;left:10px;font-size:20px;color:white;}
+#msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+font-size:40px;text-align:center;display:none;color:white;}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/PointerLockControls.js"></script>
+</head>
+<body>
+
+<div id="ui">残り時間: <span id="time">180</span></div>
+<div id="msg"></div>
+
+<script>
+let scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000000,0.06);
+
+let camera = new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);
+let renderer = new THREE.WebGLRenderer();
+renderer.setSize(innerWidth,innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new THREE.PointerLockControls(camera,document.body);
+document.body.onclick = ()=>controls.lock();
+scene.add(controls.getObject());
+
+// 光
+scene.add(new THREE.HemisphereLight(0xffffff,0x444444));
+
+// 床
+let floor = new THREE.Mesh(new THREE.PlaneGeometry(50,50),
+  new THREE.MeshStandardMaterial({color:0x333333}));
+floor.rotation.x=-Math.PI/2;
+scene.add(floor);
+
+// 迷路生成
+let wallGeo = new THREE.BoxGeometry(3,3,3);
+let wallMat = new THREE.MeshStandardMaterial({color:0x777777});
+const maze = [
+[1,1,1,1,1,1,1],
+[1,0,0,0,0,0,1],
+[1,0,1,1,1,0,1],
+[1,0,1,0,1,0,1],
+[1,0,1,0,0,0,1],
+[1,0,0,0,1,0,1],
+[1,1,1,1,1,1,1]
+];
+for(let z=0; z<maze.length; z++){
+  for(let x=0; x<maze[z].length; x++){
+    if(maze[z][x]){
+      let w = new THREE.Mesh(wallGeo, wallMat);
+      w.position.set(x*3,1.5,z*3);
+      scene.add(w);
+    }
+  }
+}
+
+// ゴール
+let goal = new THREE.Mesh(new THREE.BoxGeometry(1,1,1),
+  new THREE.MeshBasicMaterial({color:0x00ff00}));
+goal.position.set(15,0.5,15);
+scene.add(goal);
+
+// プレイヤー初期位置
+controls.getObject().position.set(3,1.5,3);
+
+// ケンタウルス
+let centaur = new THREE.Mesh(new THREE.BoxGeometry(1.5,2,1),
+  new THREE.MeshStandardMaterial({color:0xaa0000}));
+centaur.position.set(15,1,3);
+scene.add(centaur);
+centaur.visible=false;
+
+let keys = {};
+document.addEventListener("keydown", e=>keys[e.key]=true);
+document.addEventListener("keyup", e=>keys[e.key]=false);
+
+function move(){
+  let speed = 0.08;
+  if(keys["w"]) controls.moveForward(speed);
+  if(keys["s"]) controls.moveForward(-speed);
+  if(keys["a"]) controls.moveRight(-speed);
+  if(keys["d"]) controls.moveRight(speed);
+}
+
+let time=180;
+let chase=false;
+setInterval(()=>{
+  if(time>0){time--;document.getElementById("time").textContent=time;}
+  if(time<=0 && !chase){chase=true;centaur.visible=true;}
+},1000);
+
+function animate(){
+  requestAnimationFrame(animate);
+  move();
+  let player = controls.getObject().position;
+
+  // ケンタウルス追跡
+  if(chase){
+    let dir = new THREE.Vector3().subVectors(player,centaur.position).normalize();
+    centaur.position.add(dir.multiplyScalar(0.04));
+    if(centaur.position.distanceTo(player)<1){
+      document.getElementById("msg").style.display="block";
+      document.getElementById("msg").innerHTML="ケンタウルスに捕まった…<br>GAME OVER";
+    }
+  }
+
+  // ゴール判定
+  if(player.distanceTo(goal.position)<1){
+    document.getElementById("msg").style.display="block";
+    document.getElementById("msg").innerHTML="迷路を抜けた！<br>目の前に街が広がっている…";
+  }
+
+  renderer.render(scene,camera);
+}
+animate();
+</script>
+
+</body>
+</html>
