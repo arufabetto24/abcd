@@ -2,95 +2,70 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>迷路ゲーム 明るく版</title>
+<title>迷路確認版</title>
 <style>
-body{margin:0;overflow:hidden;background:#333;font-family:sans-serif;}
+body{margin:0;overflow:hidden;background:#333;}
+canvas{display:block;}
 #ui{position:absolute;top:10px;left:10px;color:white;font-size:20px;}
 #msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
 color:white;font-size:30px;text-align:center;display:none;}
-#start{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+button{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
 padding:20px 40px;font-size:24px;cursor:pointer;background:#4caf50;color:white;border:none;border-radius:10px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/PointerLockControls.js"></script>
 </head>
 <body>
-<div id="ui">残り時間: <span id="time">60</span></div>
+<div id="ui">残り時間: <span id="time">30</span></div>
 <div id="msg"></div>
 <button id="start">クリックしてスタート</button>
-
 <script>
-let scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87CEEB); // 空色で明るく
-scene.fog = new THREE.FogExp2(0x87CEEB,0.02);
+let scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87CEEB);
 
-let camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
-let renderer = new THREE.WebGLRenderer();
+let camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+let renderer=new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth,window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-let controls = new THREE.PointerLockControls(camera, document.body);
-document.getElementById('start').onclick = function() {
-  controls.lock();
-  this.style.display = 'none';
-};
+let controls=new THREE.PointerLockControls(camera,document.body);
+document.getElementById("start").onclick=()=>{controls.lock();document.getElementById("start").style.display="none";};
 scene.add(controls.getObject());
 
 // 光
 scene.add(new THREE.HemisphereLight(0xffffff,0x444444));
 
 // 床
-let floor = new THREE.Mesh(new THREE.PlaneGeometry(50,50),
-  new THREE.MeshStandardMaterial({color:0x888888}));
-floor.rotation.x = -Math.PI/2;
-scene.add(floor);
+scene.add(new THREE.Mesh(new THREE.PlaneGeometry(50,50),new THREE.MeshStandardMaterial({color:0x888888})).rotation.x=-Math.PI/2);
 
-// 迷路簡易
-let wallGeo = new THREE.BoxGeometry(3,3,3);
-let wallMat = new THREE.MeshStandardMaterial({color:0x555555});
-const maze=[[1,1,1,1],[1,0,0,1],[1,0,0,1],[1,1,1,1]];
-for(let z=0; z<maze.length; z++){
-  for(let x=0; x<maze[z].length; x++){
-    if(maze[z][x]){
-      let w = new THREE.Mesh(wallGeo, wallMat);
-      w.position.set(x*3,1.5,z*3);
-      scene.add(w);
-    }
-  }
+// 簡単な迷路
+let wall=new THREE.BoxGeometry(3,3,3);
+let mat=new THREE.MeshStandardMaterial({color:0x555555});
+for(let i=0;i<4;i++){
+  let w=new THREE.Mesh(wall,mat); w.position.set(i*3,1.5,0); scene.add(w);
 }
 
 // ゴール
-let goal = new THREE.Mesh(new THREE.BoxGeometry(1,1,1),
-  new THREE.MeshStandardMaterial({color:0x00ff00}));
-goal.position.set(6,0.5,6);
-scene.add(goal);
+let goal=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x00ff00}));
+goal.position.set(6,0.5,0); scene.add(goal);
 
-// プレイヤー初期位置
-controls.getObject().position.set(3,1.5,3);
+// プレイヤー
+controls.getObject().position.set(0,1.5,0);
 
-// 移動
-let keys = {};
+let keys={};
 document.addEventListener("keydown",e=>keys[e.key]=true);
 document.addEventListener("keyup",e=>keys[e.key]=false);
-function move(){let s=0.1;if(keys["w"])controls.moveForward(s);if(keys["s"])controls.moveForward(-s);if(keys["a"])controls.moveRight(-s);if(keys["d"])controls.moveRight(s);}
+function move(){if(keys["w"])controls.moveForward(0.1);if(keys["s"])controls.moveForward(-0.1);if(keys["a"])controls.moveRight(-0.1);if(keys["d"])controls.moveRight(0.1);}
 
 // 時間カウント
-let time=60;
-setInterval(()=>{
-  if(time>0){time--;document.getElementById("time").textContent=time;}
-  if(time<=0){document.getElementById("msg").style.display="block";document.getElementById("msg").innerHTML="GAME OVER";}
-},1000);
+let time=30;
+setInterval(()=>{if(time>0){time--;document.getElementById("time").textContent=time;}
+if(time<=0){document.getElementById("msg").style.display="block";document.getElementById("msg").innerHTML="GAME OVER";}},1000);
 
 // アニメーション
-function animate(){
-  requestAnimationFrame(animate);
-  move();
-  if(controls.getObject().position.distanceTo(goal.position)<1){
-    document.getElementById("msg").style.display="block";
-    document.getElementById("msg").innerHTML="ゴール！街に到着";
-  }
-  renderer.render(scene,camera);
-}
+function animate(){requestAnimationFrame(animate);move();
+if(controls.getObject().position.distanceTo(goal.position)<1){document.getElementById("msg").style.display="block";document.getElementById("msg").innerHTML="ゴール！街に到着";}
+renderer.render(scene,camera);}
 animate();
 </script>
 </body>
